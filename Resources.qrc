@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>music/music.mp3</file>
+        <file>icon/AFCursor.png</file>
+    </qresource>
+</RCC>
