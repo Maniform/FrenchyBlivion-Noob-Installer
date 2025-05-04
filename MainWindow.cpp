@@ -339,5 +339,5 @@ void MainWindow::on_actionMusic_toggled(bool enabled)
 
 void MainWindow::on_actionCredits_triggered()
 {
-	QMessageBox::information(this, tr("Crédits"), tr("--- FrenchyBlivion Team ---\n\nAnthasix : Testeur & Recherche\nAlekso, NulsRamm, Shadows : Testeur, Contrôle qualité & Recherche\nManiform : Développeur\nSoftstar : Communication & Testeur\nVentilateur : Responsable du doublage"));
+	QMessageBox::information(this, tr("Crédits"), tr("--- FrenchyBlivion Team ---\nAnthasix : Testeur & Recherche\nAlekso, NulsRamm, Shadows : Testeur, Contrôle qualité & Recherche\nManiform, Kaoxyd : Développeur\nSoftstar : Communication & Testeur\nVentilateur : Responsable du doublage\n\n--- Musique ---\nChristopher Niskala - Oblivion 8-bit Chiptune Medley"));
 }
