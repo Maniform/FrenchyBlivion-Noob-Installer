@@ -11,6 +11,7 @@
 #define STEAM_OBLIVION_FOLDER "C:/Program Files (x86)/Steam/steamapps/common/Oblivion Remastered"
 #define XBOX_OBLIVION_FOLDER "C:/XboxGames/The Elder Scrolls IV- Oblivion Remastered/Content"
 
+#define PATCH_FOLDER "../OblivionRemastered"
 #define OBLIVION_BSA_SUBFOLDER "/OblivionRemastered/Content/Dev/ObvData/Data/"
 #define OBLIVION_PAK_SUBFOLDER "/OblivionRemastered/Content/Paks/"
 
@@ -30,7 +31,7 @@ MainWindow::MainWindow(QWidget* parent)
 	
 	qApp->setOverrideCursor(cursor);
 
-	if (!QDir("OblivionRemastered").exists())
+	if (!QDir(PATCH_FOLDER).exists())
 	{
 		QMessageBox::critical(this, tr("FrenchyBlivion Noob Installer"), tr("Le dossier du patch n'a pas été trouvé.\nMettez le dossier \"OblivionRemastered\" à côté de l'exécutable."), QMessageBox::Ok);
 		exit(-1);
@@ -42,7 +43,7 @@ MainWindow::MainWindow(QWidget* parent)
 	audioOutput.setVolume(0.3f);
 	player.play();
 
-	patchFiles = discoverFiles("OblivionRemastered");
+	patchFiles = discoverFiles(PATCH_FOLDER);
 
 	ui->gameFolderLineEdit->setText(settings.value("gameFolder").toString());
 	ui->progressBar->setVisible(false);
@@ -230,7 +231,7 @@ void MainWindow::on_openFolderPushButton_clicked()
 
 void MainWindow::on_gameFolderLineEdit_textChanged(const QString& text)
 {
-	if (QDir(text).exists() && QFile(text + "/OblivionRemastered.exe").exists())
+	if (QDir(text).exists() && (QFile(text + "/OblivionRemastered.exe").exists() || QFile(text + "/OblivionRemastered/Binaries/WinGDK/OblivionRemastered-WinGDK-Shipping.exe").exists()))
 	{
 		if (QFile(text + OBLIVION_BSA_SUBFOLDER + "FrenchyBlivionVanilla.bsa").exists())
 		{
