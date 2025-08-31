@@ -129,41 +129,89 @@ void MainWindow::patch(const QString& filePath)
 
 void MainWindow::patchPluginFile(const QString& gameFolder)
 {
-	QString pluginText;
 	QFile pluginFile(gameFolder + PLUGINS_FILE);
 	if (pluginFile.open(QFile::ReadOnly | QFile::Text))
 	{
-		pluginText = pluginFile.readAll();
+		QString pluginText = pluginFile.readAll();
 		pluginFile.close();
 
 		if (!pluginText.endsWith('\n'))
 		{
 			pluginText += '\n';
 		}
-		for (const QString& plugin : plugins)
+
+		QStringList espFiles;
+		QDirIterator it(gameFolder + OBLIVION_BSA_SUBFOLDER);
+		while (it.hasNext())
 		{
-			if (!pluginText.contains(plugin))
+			const QString file = it.next();
+			const QFileInfo fileInfo(file);
+			if (fileInfo.suffix() == "esp")
 			{
-				pluginText += plugin + "\n";
+				espFiles << file;
 			}
 		}
-		pluginText.remove("\n\n");
+
+		QStringList FrenchyBlivionEspFiles;
+		for (const QString& espFile : espFiles)
+		{
+			const QString espFileName = QFileInfo(espFile).fileName();
+			if (!pluginText.contains(espFileName))
+			{
+				if (espFileName.contains("FrenchyBlivion"))
+				{
+					FrenchyBlivionEspFiles << espFile;
+				}
+				else
+				{
+					pluginText += espFileName + "\n";
+				}
+			}
+		}
+
+		QMap<qint64, QStringList> espFilesBySize;
+		for (const QString& FrenchyBlivionEspFile : FrenchyBlivionEspFiles)
+		{
+			QString FrenchyBlivionBsaFile = FrenchyBlivionEspFile;
+			FrenchyBlivionBsaFile.replace(".esp", ".bsa");
+			QFileInfo FrenchyBlivionBsaFileInfo(FrenchyBlivionBsaFile);
+			espFilesBySize[FrenchyBlivionBsaFileInfo.size()].append(FrenchyBlivionEspFile);
+		}
+
+		QStringList espFilesSorted;
+		for (const qint64 key : espFilesBySize.keys())
+		{
+			for (const QString& espFile : espFilesBySize[key])
+			{
+				const QString espFileName = QFileInfo(espFile).fileName();
+				if (key == 0)
+				{
+					continue;
+				}
+				else
+				{
+					espFilesSorted.push_back(espFileName);
+				}
+			}
+		}
+		for (const QString& espFile : espFilesBySize[0])
+		{
+			const QString espFileName = QFileInfo(espFile).fileName();
+			espFilesSorted.push_back(espFileName);
+		}
+
+		for (const QString& espFile : espFilesSorted)
+		{
+			pluginText.replace("AltarESPLocal.esp", "AltarESPLocal.esp\n" + espFile + "\n");
+		}
+
+		pluginText.replace("\n\n", "\n");
 		if (pluginFile.open(QFile::WriteOnly | QFile::Text))
 		{
 			QTextStream ts(&pluginFile);
 			ts << pluginText;
 			pluginFile.close();
 		}
-		else
-		{
-			QMessageBox::warning(this, tr("FrenchyBlivion Noob Installer"), tr("Impossible d'ouvrir le fichier Plugins.txt en écriture. Le patch n'a pas pu être appliqué."), QMessageBox::Ok);
-			return;
-		}
-	}
-	else
-	{
-		QMessageBox::warning(this, tr("FrenchyBlivion Noob Installer"), tr("Impossible d'ouvrir le fichier Plugins.txt en lecture. Le patch n'a pas pu être appliqué."), QMessageBox::Ok);
-		return;
 	}
 }
 
@@ -275,12 +323,11 @@ void MainWindow::on_patchPushButton_clicked()
 		}
 	);
 	patchFutureWatcher.setFuture(patchFuture);
-
-	patchPluginFile(ui->gameFolderLineEdit->text());
 }
 
 void MainWindow::on_patchFutureFinished()
 {
+	patchPluginFile(ui->gameFolderLineEdit->text());
 	QMessageBox::information(this, tr("FrenchyBlivion Noob Installer"), tr("Le patch a été appliqué avec succès.\nYouhou !!"), QMessageBox::Ok);
 
 	ui->patchPushButton->setVisible(false);
