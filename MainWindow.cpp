@@ -246,7 +246,7 @@ void MainWindow::unpatchPluginFile(const QString& gameFolder)
 				pluginText.remove(plugin + "\n");
 			}
 		}
-		pluginText.remove("\n\n");
+		pluginText.replace("\n\n", "\n");
 		if (pluginFile.open(QFile::WriteOnly | QFile::Text))
 		{
 			QTextStream ts(&pluginFile);
