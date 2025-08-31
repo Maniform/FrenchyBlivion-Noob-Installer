@@ -12,8 +12,10 @@
 #define XBOX_OBLIVION_FOLDER "C:/XboxGames/The Elder Scrolls IV- Oblivion Remastered/Content"
 
 #define PATCH_FOLDER "../OblivionRemastered"
+#define PLUGINS_FILE "/OblivionRemastered/Content/Dev/ObvData/Data/Plugins.txt"
 #define OBLIVION_BSA_SUBFOLDER "/OblivionRemastered/Content/Dev/ObvData/Data/"
 #define OBLIVION_PAK_SUBFOLDER "/OblivionRemastered/Content/Paks/"
+#define FRENCHYBLIVION_TEST_FILE "FrenchyBlivionVanilla.bsa"
 
 MainWindow::MainWindow(QWidget* parent)
 	: QMainWindow(parent)
@@ -21,14 +23,10 @@ MainWindow::MainWindow(QWidget* parent)
 	, settings("Manicorp", "FrenchyBlivion-Noob-Installer", this)
 	, cursorPixmap(":/icon/AFCursor.png")
 	, cursor(cursorPixmap, 13, 6)
-	, plugins{
-		"FrenchyBlivionVanilla.esp",
-		"FrenchyBlivionDLC.esp",
-		"FrenchyBlivionAltar.esp"
-	}
+	, plugins{}
 {
     ui->setupUi(this);
-	
+
 	qApp->setOverrideCursor(cursor);
 
 	if (!QDir(PATCH_FOLDER).exists())
@@ -44,6 +42,7 @@ MainWindow::MainWindow(QWidget* parent)
 	player.play();
 
 	patchFiles = discoverFiles(PATCH_FOLDER);
+	discoverPlugins();
 
 	ui->gameFolderLineEdit->setText(settings.value("gameFolder").toString());
 	ui->progressBar->setVisible(false);
@@ -97,31 +96,41 @@ QStringList MainWindow::discoverFiles(const QString& folderPath)
 	return files;
 }
 
+void MainWindow::discoverPlugins()
+{
+	for (const QString& patchFile : patchFiles)
+	{
+		QFileInfo patchFileInfo(patchFile);
+		QString suffix = patchFileInfo.suffix();
+		if (patchFileInfo.isFile() && patchFileInfo.suffix() == "esp")
+		{
+			plugins.append(patchFileInfo.fileName());
+		}
+	}
+}
+
 void MainWindow::patch(const QString& filePath)
 {
 	const QString gameFolder = ui->gameFolderLineEdit->text();
-	const QString bsaFolder = gameFolder + OBLIVION_BSA_SUBFOLDER;
-
-	if (filePath.endsWith(".bsa", Qt::CaseInsensitive) || filePath.endsWith(".esp", Qt::CaseInsensitive))
+	const QString inFile = "/" + filePath;
+	QString outFile = gameFolder + filePath;
+	outFile.remove("..");
+	if (QFile(outFile).exists())
 	{
-		const QString gameFile = bsaFolder + QFileInfo(filePath).fileName();
-		if (QFile(gameFile).exists())
+		const QString oldFile = outFile + ".old";
+		if (QFile(oldFile).exists())
 		{
-			QFile::rename(gameFile, gameFile + ".old");
+			QFile::remove(oldFile);
 		}
-		QFile::copy(filePath, gameFile);
+		QFile::rename(outFile, oldFile);
 	}
-	else if (filePath.endsWith(".pak", Qt::CaseInsensitive))
-	{
-		const QString gameFile = gameFolder + OBLIVION_PAK_SUBFOLDER + QFileInfo(filePath).fileName();
-		QFile::copy(filePath, gameFile);
-	}
+	QFile::copy(filePath, outFile);
 }
 
 void MainWindow::patchPluginFile(const QString& gameFolder)
 {
 	QString pluginText;
-	QFile pluginFile(gameFolder + "/OblivionRemastered/Content/Dev/ObvData/Data/Plugins.txt");
+	QFile pluginFile(gameFolder + PLUGINS_FILE);
 	if (pluginFile.open(QFile::ReadOnly | QFile::Text))
 	{
 		pluginText = pluginFile.readAll();
@@ -138,6 +147,7 @@ void MainWindow::patchPluginFile(const QString& gameFolder)
 				pluginText += plugin + "\n";
 			}
 		}
+		pluginText.remove("\n\n");
 		if (pluginFile.open(QFile::WriteOnly | QFile::Text))
 		{
 			QTextStream ts(&pluginFile);
@@ -160,26 +170,15 @@ void MainWindow::patchPluginFile(const QString& gameFolder)
 void MainWindow::unpatch(const QString& filePath)
 {
 	const QString gameFolder = ui->gameFolderLineEdit->text();
-	const QString bsaFolder = gameFolder + OBLIVION_BSA_SUBFOLDER;
-
-	if (filePath.endsWith(".bsa", Qt::CaseInsensitive) || filePath.endsWith(".esp", Qt::CaseInsensitive))
+	QString outFile = gameFolder + filePath;
+	outFile.remove("..");
+	if (QFile(outFile).exists())
 	{
-		const QString gameFile = bsaFolder + QFileInfo(filePath).fileName();
-		if (QFile(gameFile).exists())
+		QFile::remove(outFile);
+		const QString oldFile = outFile + ".old";
+		if (QFile(oldFile).exists())
 		{
-			QFile::remove(gameFile);
-			if (QFile(gameFile + ".old").exists())
-			{
-				QFile::rename(gameFile + ".old", gameFile);
-			}
-		}
-	}
-	else if (filePath.endsWith(".pak", Qt::CaseInsensitive))
-	{
-		const QString gameFile = gameFolder + OBLIVION_PAK_SUBFOLDER + QFileInfo(filePath).fileName();
-		if (QFile(gameFile).exists())
-		{
-			QFile::remove(gameFile);
+			QFile::rename(oldFile, outFile);
 		}
 	}
 }
@@ -187,7 +186,7 @@ void MainWindow::unpatch(const QString& filePath)
 void MainWindow::unpatchPluginFile(const QString& gameFolder)
 {
 	QString pluginText;
-	QFile pluginFile(gameFolder + "/OblivionRemastered/Content/Dev/ObvData/Data/Plugins.txt");
+	QFile pluginFile(gameFolder + PLUGINS_FILE);
 	if (pluginFile.open(QFile::ReadOnly | QFile::Text))
 	{
 		pluginText = pluginFile.readAll();
@@ -199,6 +198,7 @@ void MainWindow::unpatchPluginFile(const QString& gameFolder)
 				pluginText.remove(plugin + "\n");
 			}
 		}
+		pluginText.remove("\n\n");
 		if (pluginFile.open(QFile::WriteOnly | QFile::Text))
 		{
 			QTextStream ts(&pluginFile);
@@ -233,7 +233,8 @@ void MainWindow::on_gameFolderLineEdit_textChanged(const QString& text)
 {
 	if (QDir(text).exists() && (QFile(text + "/OblivionRemastered.exe").exists() || QFile(text + "/OblivionRemastered/Binaries/WinGDK/OblivionRemastered-WinGDK-Shipping.exe").exists()))
 	{
-		if (QFile(text + OBLIVION_BSA_SUBFOLDER + "FrenchyBlivionVanilla.bsa").exists())
+		const QString modTestFile = text + OBLIVION_BSA_SUBFOLDER + FRENCHYBLIVION_TEST_FILE;
+		if (QFile(modTestFile).exists())
 		{
 			ui->patchPushButton->setEnabled(false);
 			ui->patchPushButton->setVisible(false);
@@ -267,7 +268,10 @@ void MainWindow::on_patchPushButton_clicked()
 	patchFuture = QtConcurrent::map(patchFiles,
 		[this](const QString& filePath)
 		{
-			this->patch(filePath);
+			if (QFileInfo(filePath).isFile())
+			{
+				this->patch(filePath);
+			}
 		}
 	);
 	patchFutureWatcher.setFuture(patchFuture);

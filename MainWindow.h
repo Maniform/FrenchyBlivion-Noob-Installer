@@ -38,6 +38,7 @@ private:
 	QCursor cursor;
 
 	QStringList discoverFiles(const QString& folderPath);
+	void discoverPlugins();
 
 	QFuture<void> patchFuture;
 	QFutureWatcher<void> patchFutureWatcher;
@@ -48,7 +49,7 @@ private:
 	void unpatch(const QString& filePath);
 	void unpatchPluginFile(const QString& gameFolder);
 
-	const QStringList plugins;
+	QStringList plugins;
 	QStringList patchFiles;
 
 private slots:
